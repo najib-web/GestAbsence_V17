@@ -20,12 +20,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (!session) return NextResponse.json({ error: "Session introuvable" }, { status: 404 });
 
-  // Get students of the class — filtered to the session's group when the roll
-  // call targets a specific group (from the weekly service grid)
+  // Liste COMPLÈTE de la classe : le groupe (G1/G2) de la séance n'est pas
+  // utilisé pour filtrer les élèves — l'enseignant fait l'appel de toute la classe.
   const students = await db.student.findMany({
     where: {
       classeId: session.classeId,
-      ...(session.groupId ? { groupId: session.groupId } : {}),
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });

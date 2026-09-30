@@ -425,3 +425,20 @@ Work Log:
 
 Stage Summary:
 - Kit de synchronisation livré dans download/ : copie des 3 fichiers ciblés OU archive complète. Instructions transmises : remplacer les fichiers, redémarrer, Ctrl+Shift+R (PWA), commit+push pour Vercel.
+
+---
+Task ID: 29
+Agent: Super Z (main agent)
+Task: « pour l'enseignant lorsque il veut faire l'appelle du classe ayant des groupe G1 ou G2 il faut afficher la liste de la classe en totalité sans prendre en compte le groupe ».
+
+Work Log:
+- Cause localisée : GET /api/sessions/[id] filtrait les élèves par session.groupId quand la séance était rattachée à un groupe (séances issues de la grille hebdo).
+- Fix : suppression du filtre groupId dans la requête students → liste COMPLÈTE de la classe, toujours. Le groupe reste enregistré sur la session (traçabilité + dédoublonnage teacher+classe+groupe+matière inchangés) et reste affiché dans l'en-tête de l'appel.
+- Sandbox réinitialisé encore entre les messages (client Prisma repassé en postgresql) → re-restauration (db push + generate sqlite + seed) + redémarrage dev.
+- scripts/setup-groups-test.ts (nouveau, idempotent) : crée G1/G2 sur 1BACSC-1, répartit les 8 élèves (4/4), crée une séance « en cours » 1BACSC-1·G1 (jour+créneau couvrant now) ; astuce : Groupe exige labelFr/labelAr, contrainte @@unique([code,classeId]).
+- Tests : ① API directe (POST /api/sessions via fetch navigateur avec cookie prof, puis GET /api/sessions/[id]) → 8 élèves renvoyés pour une séance G1 ✓ ; ② UI : séance concurrente 2BACPC-1 déplacée 08:00-09:00 (l'UI n'affiche qu'une séance en cours) → « Faire l'Appel » sur 1BACSC-1·G1 → page d'appel avec 8 lignes (4 G1 + 4 G2), en-tête « 1BACSC-1 [G1] », compteurs Présent 8 ✓. Capture : download/verification/appel-classe-groupes-complet.png.
+- tsc src/ : 0 erreur. Kit de sync mis à jour : download/sync/src/app/api/sessions/[id]/route.ts + zip régénéré.
+
+Stage Summary:
+- Livré : l'appel enseignant affiche TOUJOURS la classe entière, même quand la séance est rattachée à un groupe (G1/G2). Le groupe reste indicatif (en-tête, traçabilité).
+- Fichier à synchroniser chez l'utilisateur : src/app/api/sessions/[id]/route.ts (ajouté au kit download/sync/ et au zip).
