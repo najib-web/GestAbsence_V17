@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n-context";
 import { useFetch, apiPost, apiDelete, apiPatch } from "@/lib/hooks";
 import { SUBJECTS } from "@/lib/subjects";
@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Loader2, BookOpen, UserPlus, UserPen, CalendarClock, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, XCircle, KeyRound, Phone, Pencil } from "lucide-react";
+import { Plus, Trash2, Loader2, BookOpen, UserPlus, UserPen, CalendarClock, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, XCircle, KeyRound, Phone, Pencil, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -76,6 +76,13 @@ export function AdminTeachers() {
   const [newPassword, setNewPassword] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
 
+  // Filtres — section Enseignants : recherche libre + matière
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [matiereFilter, setMatiereFilter] = useState<string>("all");
+  // Filtres — section Tables de Service : enseignant + classe
+  const [svcTeacherFilter, setSvcTeacherFilter] = useState<string>("all");
+  const [svcClasseFilter, setSvcClasseFilter] = useState<string>("all");
+
   async function resetPassword(e: React.FormEvent) {
     e.preventDefault();
     if (!pwdTarget) return;
@@ -95,6 +102,36 @@ export function AdminTeachers() {
   const teachers = teachersData?.teachers ?? [];
   const classes = classesData?.classes ?? [];
   const services = servicesData?.services ?? [];
+
+  // Matières distinctes réellement affectées (tri alphabétique FR) — pour le filtre
+  const matieres = useMemo(
+    () =>
+      Array.from(new Set(teachers.map((tc) => tc.matiere).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, "fr")
+      ),
+    [teachers]
+  );
+
+  // Enseignants filtrés : recherche (nom/prénom FR-AR, PPR, email, matière) + matière
+  const filteredTeachers = teachers.filter((tc) => {
+    if (matiereFilter !== "all" && tc.matiere !== matiereFilter) return false;
+    if (teacherSearch) {
+      const q = teacherSearch.toLowerCase();
+      const hay = [tc.ppr, tc.lastName, tc.firstName, tc.lastNameAr, tc.firstNameAr, tc.user?.email, tc.matiere]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Tables de service filtrées : enseignant + classe
+  const filteredServices = services.filter((s) => {
+    if (svcTeacherFilter !== "all" && s.teacher?.id !== svcTeacherFilter) return false;
+    if (svcClasseFilter !== "all" && s.classe?.id !== svcClasseFilter) return false;
+    return true;
+  });
 
   async function handleFile(file: File) {
     lastFileRef.current = file;
@@ -227,10 +264,35 @@ export function AdminTeachers() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
-            {t.teachers} ({teachers.length})
+            {t.teachers} ({filteredTeachers.length === teachers.length ? teachers.length : `${filteredTeachers.length}/${teachers.length}`})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          {/* Filtres : recherche + matière */}
+          <div className="flex flex-wrap gap-3 p-4 pb-2">
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t.search}
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+                className="ps-9"
+              />
+            </div>
+            <Select value={matiereFilter} onValueChange={setMatiereFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.allSubjects}</SelectItem>
+                {matieres.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -254,14 +316,14 @@ export function AdminTeachers() {
                       <Loader2 className="h-5 w-5 mx-auto animate-spin text-muted-foreground" />
                     </TableCell>
                   </TableRow>
-                ) : teachers.length === 0 ? (
+                ) : filteredTeachers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       {t.noData}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  teachers.map((tc) => (
+                  filteredTeachers.map((tc) => (
                     <TableRow key={tc.id}>
                       <TableCell className="font-mono text-xs">{tc.ppr || "—"}</TableCell>
                       <TableCell className="font-medium">
@@ -337,11 +399,40 @@ export function AdminTeachers() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5 text-primary" />
-            {t.serviceTables} ({services.length})
+            {t.serviceTables} ({filteredServices.length === services.length ? services.length : `${filteredServices.length}/${services.length}`})
           </CardTitle>
           <CardDescription>{t.serviceTablesDesc}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
+          {/* Filtres : enseignant + classe */}
+          <div className="flex flex-wrap gap-3 p-4 pb-2">
+            <Select value={svcTeacherFilter} onValueChange={setSvcTeacherFilter}>
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.allTeachers}</SelectItem>
+                {teachers.map((tc) => (
+                  <SelectItem key={tc.id} value={tc.id}>
+                    {tc.lastName} {tc.firstName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={svcClasseFilter} onValueChange={setSvcClasseFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.allClasses}</SelectItem>
+                {classes.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -355,14 +446,14 @@ export function AdminTeachers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {services.length === 0 ? (
+                {filteredServices.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {t.noData}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  services.map((s) => (
+                  filteredServices.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">
                         {s.teacher.lastName} {s.teacher.firstName}

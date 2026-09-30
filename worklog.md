@@ -397,3 +397,19 @@ Work Log:
 Stage Summary:
 - Test end-to-end PASSANT : la matière Économie/الاقتصاد est opérationnelle dans la création d'enseignant (UI + persistance + traduction arabe automatique + scoping établissement).
 - Environnement démo restauré (ETAB-DEM, serveur dev sur localhost:3000).
+
+---
+Task ID: 27
+Agent: Super Z (main agent)
+Task: « pour la partie Enseignants & Tables de Service ajouter le filtre sur la section enseignant aussi section Tables de service » — filtres sur les deux sections de l'onglet.
+
+Work Log:
+- Pattern repris de admin-students.tsx (Card filtre : Search icon + Input ps-9 + Select « all »). Nouvelle clé i18n allSubjects (FR « Toutes les matières » / AR « جميع المواد ») ; réutilisation de search/allTeachers/allClasses existants.
+- admin-teachers.tsx : états teacherSearch/matiereFilter (section Enseignants) + svcTeacherFilter/svcClasseFilter (section Tables de Service) ; matières dérivées des valeurs réelles des enseignants (useMemo, tri localeCompare fr) ; filteredTeachers = recherche cumulable (ppr, nom/prénom FR+AR, email, matière) + matière ; filteredServices = enseignant + classe (s.teacher.id / s.classe.id présents dans le payload /api/service-tables) ; compteurs titres « filtrés/total » (ex 1/2) quand un filtre est actif ; icône Search ajoutée aux imports lucide.
+- Environnement : base SQLite disparue encore une fois entre les messages (sandbox) → re-restaurée (db push + seed + redémarrage dev). Enseignante test Nadia El Amrani (Économie, 1254871) recréée pour un test significatif (2 enseignants, matières différentes).
+- Tests navigateur (agent-browser) : recherche « El Amrani » → 1/2 ✓ ; matière « Économie » → 1/2 (cumul avec recherche) ✓ ; services classe « 1BACSC-1 » → 1/3 ✓ ; services enseignant « El Amrani Nadia » → 0/3 + état vide « Aucune donnée disponible » ✓ ; reset via options « Tous… » → totaux 2 / 3 ✓ ; interface AR/RTL : بحث / جميع المواد / جميع الأساتذة / جميع الأقسام correctement traduits et miroir ✓.
+- tsc --noEmit : 0 erreur dans src/. Captures : download/verification/filtre-recherche-elamrani.png, filtre-matiere-economie.png, filtre-classe-services.png, filtres-interface-arabe.png.
+
+Stage Summary:
+- Livré : filtres sur les 2 sections de « Enseignants & Tables de Service » — Enseignants : recherche libre (FR/AR, PPR, email, matière) + select matière ; Tables de Service : select enseignant + select classe. Compteurs filtrés/total, état vide géré, bilingue FR/AR.
+- À retenir : la DB démo disparaît régulièrement (sandbox) — procédure de restauration documentée (Task 26).
