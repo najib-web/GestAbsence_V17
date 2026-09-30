@@ -413,3 +413,15 @@ Work Log:
 Stage Summary:
 - Livré : filtres sur les 2 sections de « Enseignants & Tables de Service » — Enseignants : recherche libre (FR/AR, PPR, email, matière) + select matière ; Tables de Service : select enseignant + select classe. Compteurs filtrés/total, état vide géré, bilingue FR/AR.
 - À retenir : la DB démo disparaît régulièrement (sandbox) — procédure de restauration documentée (Task 26).
+
+---
+Task ID: 28
+Agent: Super Z (main agent)
+Task: « oui » — fournir les fichiers modifiés à synchroniser vers l'instance de l'utilisateur (qui tourne avec une copie antérieure du code, cf. Task 25/27).
+
+Work Log:
+- download/sync/ : les 3 fichiers modifiés cette session avec arborescence préservée — src/lib/subjects.ts (Économie/الاقتصاد), src/lib/i18n.ts (clé allSubjects FR/AR), src/components/admin/admin-teachers.tsx (filtres 2 sections).
+- download/GestAbsence-sync-20260930.zip (4,4 Mo, 315 fichiers) : snapshot source complet à jour (src/, prisma/, public/, scripts/, package.json, next.config.ts, tsconfig.json, postcss.config.mjs, components.json — sans node_modules/.next/db/logs/.git).
+
+Stage Summary:
+- Kit de synchronisation livré dans download/ : copie des 3 fichiers ciblés OU archive complète. Instructions transmises : remplacer les fichiers, redémarrer, Ctrl+Shift+R (PWA), commit+push pour Vercel.
